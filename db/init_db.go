@@ -1,40 +1,55 @@
 package main
 
 import (
-	"io"
-	"log/slog"
-	"os"
+	"database/sql"
+	"fmt"
+	"log"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/mori5600/gotodo/common"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func main() {
-	// lumberjack の設定
-	logRotator := &lumberjack.Logger{
-		Filename:   common.LOG_PATH, // ログファイルのパス
-		MaxSize:    10,              // ログファイルの最大サイズ（MB）
-		MaxBackups: 5,               // 保持するバックアップファイルの最大数
-		MaxAge:     0,               // ログファイルの最大保存日数（0は無制限）
-		Compress:   false,           // 古いログファイルの圧縮有無
+	// データベースに接続
+	db, err := sql.Open(common.DB_DRIVER, common.DB_PATH)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	// テーブルの作成
+	_, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		email TEXT
+	)
+`)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	// 複数の出力先（標準出力とファイル）を設定
-	multiWriter := io.MultiWriter(os.Stdout, logRotator)
+	// データの挿入
+	_, err = db.Exec("INSERT INTO users (name, email) VALUES (?, ?)", "山田太郎", "yamada@example.com")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// slog のハンドラーを設定（JSON形式で出力）
-	handler := slog.NewTextHandler(multiWriter, &slog.HandlerOptions{
-		Level: slog.LevelInfo, // INFOレベル以上を出力
-	})
+	// データの取得
+	rows, err := db.Query("SELECT id, name, email FROM users")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
 
-	// カスタムロガーを作成
-	logger := slog.New(handler)
-
-	// デフォルトのロガーを設定
-	slog.SetDefault(logger)
-
-	// ログ出力の例
-	slog.Info("アプリケーションが起動しました", "version", "1.0.0", "port", 8080)
-	slog.Warn("高いメモリ使用率", "memory_usage", 90.5)
-	slog.Error("データベース接続に失敗しました", "error", "timeout")
+	// 結果の表示
+	for rows.Next() {
+		var id int
+		var name, email string
+		err = rows.Scan(&id, &name, &email)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("ID: %d, 名前: %s, メール: %s\n", id, name, email)
+	}
 }
