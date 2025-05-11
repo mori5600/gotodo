@@ -6,11 +6,12 @@ import (
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/mori5600/gotodo/common"
 )
 
 func main() {
 	// データベースに接続
-	db, err := sql.Open("sqlite3", "./test.db")
+	db, err := sql.Open(common.DB_DRIVER, common.DB_PATH)
 	if err != nil {
 		log.Fatal(err)
 	}
