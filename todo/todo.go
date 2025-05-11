@@ -9,29 +9,24 @@ type Todo struct {
 	ID          int
 	Description string
 	Status      int
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	DeletedAt   time.Time
+	DueDate     time.Time
 }
 
-func NewTodo(id int, description string) *Todo {
+func NewTodo(id int, description string, dueDate time.Time) *Todo {
 	return &Todo{
 		ID:          id,
 		Description: description,
 		Status:      0,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		DueDate:     dueDate,
 	}
 }
 
 func (t *Todo) String() string {
 	return fmt.Sprintf(
-		"ID: %d, Description: %s, Status: %d, CreatedAt: %s, UpdatedAt: %s, DeletedAt: %s",
+		"Todo[ID=%d, Description=%s, Status=%d, DueDate=%s]",
 		t.ID,
 		t.Description,
 		t.Status,
-		t.CreatedAt,
-		t.UpdatedAt,
-		t.DeletedAt,
+		t.DueDate.Format("2006-01-02 15:04:05"),
 	)
 }
