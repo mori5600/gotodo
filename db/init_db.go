@@ -2,14 +2,16 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mori5600/gotodo/common"
+	"github.com/mori5600/gotodo/logging"
 )
 
 func main() {
+	logger := logging.GetLogger()
+
 	// データベースに接続
 	db, err := sql.Open(common.DB_DRIVER, common.DB_PATH)
 	if err != nil {
@@ -21,35 +23,16 @@ func main() {
 	_, err = db.Exec(`
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
-		email TEXT
+		description TEXT NOT NULL,
+		status INTEGER DEFAULT 0,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		deleted_at DATETIME DEFAULT NULL
 	)
 `)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("テーブルの作成に失敗しました", "error", err)
 	}
 
-	// データの挿入
-	_, err = db.Exec("INSERT INTO users (name, email) VALUES (?, ?)", "山田太郎", "yamada@example.com")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// データの取得
-	rows, err := db.Query("SELECT id, name, email FROM users")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	// 結果の表示
-	for rows.Next() {
-		var id int
-		var name, email string
-		err = rows.Scan(&id, &name, &email)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("ID: %d, 名前: %s, メール: %s\n", id, name, email)
-	}
+	logger.Info("テーブルの作成に成功しました")
 }
