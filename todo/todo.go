@@ -32,3 +32,23 @@ func (t Todo) String() string {
 		t.DueDate.Format(common.TIME_FORMAT),
 	)
 }
+
+type TodoCreate struct {
+	Description string
+	DueDate     time.Time
+}
+
+func NewTodoCreate(description string, dueDate time.Time) TodoCreate {
+	return TodoCreate{
+		Description: description,
+		DueDate:     dueDate,
+	}
+}
+
+func (t TodoCreate) String() string {
+	return fmt.Sprintf(
+		"TodoCreate[Description=%s, DueDate=%s]",
+		t.Description,
+		t.DueDate.Format(common.TIME_FORMAT),
+	)
+}
