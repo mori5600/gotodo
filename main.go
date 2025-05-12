@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mori5600/gotodo/common"
+	"github.com/mori5600/gotodo/db"
 	"github.com/mori5600/gotodo/logging"
 	"github.com/mori5600/gotodo/todo"
 )
@@ -58,6 +59,18 @@ func logErrorReadingInput(sccaner *bufio.Scanner) error {
 }
 
 func main() {
+	// Initialize the logger
+	logger := logging.GetLogger()
+	logger.Info("Starting Todo application")
+
+	// Initialize the database
+	db, err := db.InitDB()
+	if err != nil {
+		logger.Error("Error initializing database", "error", err)
+		return
+	}
+	defer db.Close()
+
 	var todos []todo.Todo
 	scanner := bufio.NewScanner(os.Stdin)
 

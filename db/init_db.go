@@ -1,4 +1,4 @@
-package main
+package db
 
 import (
 	"database/sql"
@@ -6,22 +6,20 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mori5600/gotodo/common"
-	"github.com/mori5600/gotodo/logging"
 )
 
-func initDB() {
-	logger := logging.GetLogger()
+func InitDB() (*sql.DB, error) {
+	// Create a new SQLite database
 
-	// データベースに接続
 	db, err := sql.Open(common.DB_DRIVER, common.DB_PATH)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	// テーブルの作成
+	// If the database file does not exist, it will be created
 	_, err = db.Exec(`
-	CREATE TABLE IF NOT EXISTS users (
+	CREATE TABLE IF NOT EXISTS todos (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		description TEXT NOT NULL,
 		status INTEGER DEFAULT 0,
@@ -31,13 +29,8 @@ func initDB() {
 	)
 `)
 	if err != nil {
-		logger.Error("Failed to create table", "error", err)
-		return
+		return nil, err
 	}
 
-	logger.Info("Table created successfully")
-}
-
-func main() {
-	initDB()
+	return db, nil
 }
