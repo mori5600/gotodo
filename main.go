@@ -64,12 +64,28 @@ func main() {
 	logger.Info("Starting Todo application")
 
 	// Initialize the database
-	db, err := db.InitDB()
+	conn, err := db.InitDB()
 	if err != nil {
 		logger.Error("Error initializing database", "error", err)
 		return
 	}
-	defer db.Close()
+	defer conn.Close()
+
+	repo := todo.NewSQLiteTodoRepository(conn)
+
+	tc := todo.NewTodoCreate("Sample Todo", time.Now())
+	todoID, err := repo.CreateTodo(tc)
+	if err != nil {
+		logger.Error("Error creating Todo", "error", err)
+		return
+	}
+	fmt.Println("Todo created with ID:", todoID)
+	td, err := repo.GetTodoByID(todoID)
+	if err != nil {
+		logger.Error("Error getting Todo by ID", "error", err)
+		return
+	}
+	fmt.Println("Todo retrieved:", td)
 
 	var todos []todo.Todo
 	scanner := bufio.NewScanner(os.Stdin)

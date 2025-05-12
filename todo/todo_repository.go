@@ -8,7 +8,7 @@ import (
 type TodoRepository interface {
 	GetAllTodos() ([]Todo, error)
 	GetTodoByID(id int) (Todo, error)
-	CreateTodo(todo Todo) (int, error)
+	CreateTodo(todo TodoCreate) (int, error)
 	UpdateTodo(todo Todo) error
 	DeleteTodo(id int) error
 	GetTodosByStatus(status int) ([]Todo, error)
@@ -55,8 +55,13 @@ func (r *SQLiteTodoRepository) GetTodoByID(id int) (Todo, error) {
 	return todo, nil
 }
 
-func (r *SQLiteTodoRepository) CreateTodo(todo Todo) (int, error) {
-	result, err := r.db.Exec("INSERT INTO todos (description, status, due_date) VALUES (?, ?, ?)", todo.Description, todo.Status, todo.DueDate)
+func (r *SQLiteTodoRepository) CreateTodo(todo TodoCreate) (int, error) {
+	const initialStatus = 0
+
+	result, err := r.db.Exec(
+		"INSERT INTO todos (description, status, due_date) VALUES (?, ?, ?)",
+		todo.Description, initialStatus, todo.DueDate,
+	)
 	if err != nil {
 		return 0, err
 	}
