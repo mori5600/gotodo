@@ -73,8 +73,10 @@ func main() {
 
 	repo := todo.NewSQLiteTodoRepository(conn)
 
+	createTodoUseCase := todo.NewCreateTodoUseCase(repo)
+
 	tc := todo.NewTodoCreate("Sample Todo", time.Now())
-	todoID, err := repo.CreateTodo(tc)
+	todoID, err := createTodoUseCase.Execute(tc)
 	if err != nil {
 		logger.Error("Error creating Todo", "error", err)
 		return
