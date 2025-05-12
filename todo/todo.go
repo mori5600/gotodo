@@ -3,6 +3,8 @@ package todo
 import (
 	"fmt"
 	"time"
+
+	"github.com/mori5600/gotodo/common"
 )
 
 type Todo struct {
@@ -12,8 +14,8 @@ type Todo struct {
 	DueDate     time.Time
 }
 
-func NewTodo(id int, description string, dueDate time.Time) *Todo {
-	return &Todo{
+func NewTodo(id int, description string, dueDate time.Time) Todo {
+	return Todo{
 		ID:          id,
 		Description: description,
 		Status:      0,
@@ -21,12 +23,12 @@ func NewTodo(id int, description string, dueDate time.Time) *Todo {
 	}
 }
 
-func (t *Todo) String() string {
+func (t Todo) String() string {
 	return fmt.Sprintf(
 		"Todo[ID=%d, Description=%s, Status=%d, DueDate=%s]",
 		t.ID,
 		t.Description,
 		t.Status,
-		t.DueDate.Format("2006-01-02 15:04:05"),
+		t.DueDate.Format(common.TIME_FORMAT),
 	)
 }

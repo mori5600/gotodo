@@ -9,7 +9,7 @@ import (
 	"github.com/mori5600/gotodo/logging"
 )
 
-func main() {
+func initDB() {
 	logger := logging.GetLogger()
 
 	// データベースに接続
@@ -31,8 +31,13 @@ func main() {
 	)
 `)
 	if err != nil {
-		logger.Error("テーブルの作成に失敗しました", "error", err)
+		logger.Error("Failed to create table", "error", err)
+		return
 	}
 
-	logger.Info("テーブルの作成に成功しました")
+	logger.Info("Table created successfully")
+}
+
+func main() {
+	initDB()
 }
