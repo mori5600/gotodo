@@ -72,11 +72,11 @@ func main() {
 	defer conn.Close()
 
 	repo := todo.NewSQLiteTodoRepository(conn)
-
 	createTodoUseCase := todo.NewCreateTodoUseCase(repo)
+	todoController := todo.NewTodoController(createTodoUseCase)
 
 	tc := todo.NewTodoCreate("Sample Todo", time.Now())
-	todoID, err := createTodoUseCase.Execute(tc)
+	todoID, err := todoController.CreateTodo(tc)
 	if err != nil {
 		logger.Error("Error creating Todo", "error", err)
 		return
