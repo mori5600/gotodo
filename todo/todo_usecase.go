@@ -21,3 +21,25 @@ func (uc *CreateTodoUseCaseImpl) Execute(todo TodoCreate) (int, error) {
 	}
 	return id, nil
 }
+
+type ListTodosUseCase interface {
+	Execute() ([]Todo, error)
+}
+
+type ListTodosUseCaseImpl struct {
+	repo TodoRepository
+}
+
+func NewListTodosUseCase(repo TodoRepository) ListTodosUseCase {
+	return &ListTodosUseCaseImpl{
+		repo: repo,
+	}
+}
+
+func (uc *ListTodosUseCaseImpl) Execute() ([]Todo, error) {
+	todos, err := uc.repo.GetAllTodos()
+	if err != nil {
+		return nil, err
+	}
+	return todos, nil
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
 	"os"
 	"strconv"
@@ -58,6 +59,13 @@ func logErrorReadingInput(sccaner *bufio.Scanner) error {
 	return nil
 }
 
+func initTodoController(db *sql.DB) todo.TodoController {
+	repo := todo.NewSQLiteTodoRepository(db)
+	createTodoUseCase := todo.NewCreateTodoUseCase(repo)
+	listTodosUseCase := todo.NewListTodosUseCase(repo)
+	return todo.NewTodoController(createTodoUseCase, listTodosUseCase)
+}
+
 func main() {
 	// Initialize the logger
 	logger := logging.GetLogger()
@@ -71,23 +79,26 @@ func main() {
 	}
 	defer conn.Close()
 
-	repo := todo.NewSQLiteTodoRepository(conn)
-	createTodoUseCase := todo.NewCreateTodoUseCase(repo)
-	todoController := todo.NewTodoController(createTodoUseCase)
+	todoController := initTodoController(conn)
 
-	tc := todo.NewTodoCreate("Sample Todo", time.Now())
-	todoID, err := todoController.CreateTodo(tc)
+	description := "Sample Todo"
+	dueDate := time.Now().Add(24 * time.Hour)
+	todoID, err := todoController.Create(description, dueDate)
 	if err != nil {
 		logger.Error("Error creating Todo", "error", err)
 		return
 	}
-	fmt.Println("Todo created with ID:", todoID)
-	td, err := repo.GetTodoByID(todoID)
+	fmt.Printf("Todo created with ID: %d\n", todoID)
+
+	ts, err := todoController.List()
 	if err != nil {
-		logger.Error("Error getting Todo by ID", "error", err)
+		logger.Error("Error listing Todos", "error", err)
 		return
 	}
-	fmt.Println("Todo retrieved:", td)
+	fmt.Println("Todos:")
+	for _, t := range ts {
+		fmt.Println(t.String())
+	}
 
 	var todos []todo.Todo
 	scanner := bufio.NewScanner(os.Stdin)

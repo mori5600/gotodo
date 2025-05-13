@@ -38,11 +38,14 @@ type TodoCreate struct {
 	DueDate     time.Time
 }
 
-func NewTodoCreate(description string, dueDate time.Time) TodoCreate {
+func NewTodoCreate(description string, dueDate time.Time) (TodoCreate, error) {
+	if description == "" {
+		return TodoCreate{}, fmt.Errorf("description cannot be empty")
+	}
 	return TodoCreate{
 		Description: description,
 		DueDate:     dueDate,
-	}
+	}, nil
 }
 
 func (t TodoCreate) String() string {
