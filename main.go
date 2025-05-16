@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"database/sql"
 	"fmt"
 	"os"
 	"strconv"
@@ -15,40 +14,6 @@ import (
 	"github.com/mori5600/gotodo/todo"
 )
 
-type TodoStatus int
-
-const (
-	NotStarted TodoStatus = iota
-	InProgress
-	Done
-)
-
-func (s TodoStatus) String() string {
-	switch s {
-	case NotStarted:
-		return "Not Started"
-	case InProgress:
-		return "In Progress"
-	case Done:
-		return "Done"
-	default:
-		return "Unknown"
-	}
-}
-
-func convertNumToStatus(num int) TodoStatus {
-	switch num {
-	case 0:
-		return NotStarted
-	case 1:
-		return InProgress
-	case 2:
-		return Done
-	default:
-		return NotStarted
-	}
-}
-
 func logErrorReadingInput(sccaner *bufio.Scanner) error {
 	logger := logging.GetLogger()
 	if !sccaner.Scan() {
@@ -57,13 +22,6 @@ func logErrorReadingInput(sccaner *bufio.Scanner) error {
 		return err
 	}
 	return nil
-}
-
-func initTodoController(db *sql.DB) todo.TodoController {
-	repo := todo.NewSQLiteTodoRepository(db)
-	createTodoUseCase := todo.NewCreateTodoUseCase(repo)
-	listTodosUseCase := todo.NewListTodosUseCase(repo)
-	return todo.NewTodoController(createTodoUseCase, listTodosUseCase)
 }
 
 func main() {
@@ -79,28 +37,9 @@ func main() {
 	}
 	defer conn.Close()
 
-	todoController := initTodoController(conn)
+	repo := todo.NewSQLiteTodoRepository(conn)
+	todoApplicationService := todo.NewTodoApplicationService(repo)
 
-	description := "Sample Todo"
-	dueDate := time.Now().Add(24 * time.Hour)
-	todoID, err := todoController.Create(description, dueDate)
-	if err != nil {
-		logger.Error("Error creating Todo", "error", err)
-		return
-	}
-	fmt.Printf("Todo created with ID: %d\n", todoID)
-
-	ts, err := todoController.List()
-	if err != nil {
-		logger.Error("Error listing Todos", "error", err)
-		return
-	}
-	fmt.Println("Todos:")
-	for _, t := range ts {
-		fmt.Println(t.String())
-	}
-
-	var todos []todo.Todo
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
@@ -124,15 +63,13 @@ func main() {
 			return
 		case "1":
 			fmt.Println("=== Todo List ===")
+			todos, err := todoApplicationService.List()
+			if err != nil {
+				fmt.Println("Error listing todos:", err)
+				continue
+			}
 			for _, t := range todos {
-				msg := fmt.Sprintf(
-					"Todo[ID=%d, Description=%s, Status=%s, DueDate=%s]",
-					t.ID,
-					t.Description,
-					convertNumToStatus(t.Status),
-					t.DueDate.Format(common.TIME_FORMAT),
-				)
-				fmt.Println(msg)
+				fmt.Println(t.String())
 			}
 			fmt.Println("==================")
 			continue
@@ -142,8 +79,6 @@ func main() {
 				break
 			}
 			description := scanner.Text()
-
-			todoID := len(todos) + 1
 
 			fmt.Printf("Enter due date (YYYY-MM-DD HH:MM): ")
 			if err := logErrorReadingInput(scanner); err != nil {
@@ -156,13 +91,14 @@ func main() {
 				continue
 			}
 
-			todoItem := todo.NewTodo(todoID, description, dueDate)
-			todos = append(todos, todoItem)
-			fmt.Println("Todo added:", todoItem)
-			fmt.Println("Todos:")
-			for _, t := range todos {
-				fmt.Println(t.String())
+			dto, err := todoApplicationService.Create(description, dueDate)
+			if err != nil {
+				fmt.Println("Error creating todo:", err)
+				continue
 			}
+
+			fmt.Println("Todo added:", dto.String())
+			continue
 		case "3":
 			fmt.Printf("Enter the ID of the todo to update: ")
 			if err := logErrorReadingInput(scanner); err != nil {
@@ -174,10 +110,17 @@ func main() {
 				fmt.Println("Error parsing ID:", err)
 				continue
 			}
+
+			todos, err := todoApplicationService.List()
+			if err != nil {
+				fmt.Println("Error listing todos:", err)
+				continue
+			}
 			if id < 1 || id > len(todos) {
 				fmt.Println("Invalid ID. Please try again.")
 				continue
 			}
+
 			todoItem := todos[id-1]
 			fmt.Printf("Current description: %s\n", todoItem.Description)
 			fmt.Printf("Enter new description (leave blank to keep current): ")
@@ -188,7 +131,7 @@ func main() {
 			if newDescription != "" {
 				todoItem.Description = newDescription
 			}
-			fmt.Printf("Current status: %s\n", convertNumToStatus(todoItem.Status))
+			// fmt.Printf("Current status: %s\n", convertNumToStatus(todoItem.Status))
 			fmt.Printf("Enter new status (0: Not Started, 1: In Progress, 2: Done): ")
 			if err := logErrorReadingInput(scanner); err != nil {
 				break
@@ -203,8 +146,8 @@ func main() {
 				fmt.Println("Invalid status. Please try again.")
 				continue
 			}
-			todoItem.Status = status
-			fmt.Printf("Current due date: %s\n", todoItem.DueDate.Format(common.TIME_FORMAT))
+
+			fmt.Printf("Current due date: %s\n", todoItem.DueDate)
 			fmt.Printf("Enter new due date (leave blank to keep current): ")
 			if err := logErrorReadingInput(scanner); err != nil {
 				break
@@ -212,15 +155,29 @@ func main() {
 			newDueDateInput := scanner.Text()
 			if newDueDateInput != "" {
 				newDueDate, err := time.Parse(common.TIME_FORMAT, newDueDateInput)
-
 				if err != nil {
 					fmt.Println("Error parsing due date:", err)
 					continue
 				}
-				todoItem.DueDate = newDueDate
+				todoItem.DueDate = newDueDate.Format(common.TIME_FORMAT)
 			}
-			todos[id-1] = todoItem
-			fmt.Println("Todo updated:", todoItem)
+			todoStatus, err := todo.IntToStatus(status)
+			if err != nil {
+				fmt.Println("Error converting status:", err)
+				continue
+			}
+
+			d, err := time.Parse(common.TIME_FORMAT, todoItem.DueDate)
+			if err != nil {
+				fmt.Println("Error parsing due date:", err)
+				continue
+			}
+			updatedDto, err := todoApplicationService.Update(todoItem.ID, todoItem.Description, todoStatus, d)
+			if err != nil {
+				fmt.Println("Error updating todo:", err)
+				continue
+			}
+			fmt.Println("Todo updated:", updatedDto.String())
 		default:
 			fmt.Println("Invalid option. Please try again.")
 		}

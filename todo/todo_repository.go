@@ -8,8 +8,8 @@ import (
 type TodoRepository interface {
 	GetAllTodos() ([]Todo, error)
 	GetTodoByID(id int) (Todo, error)
-	CreateTodo(todo TodoCreate) (int, error)
-	UpdateTodo(todo Todo) error
+	CreateTodo(todo TodoCreate) (Todo, error)
+	UpdateTodo(todo TodoUpdate) (Todo, error)
 	DeleteTodo(id int) error
 	GetTodosByStatus(status int) ([]Todo, error)
 }
@@ -55,7 +55,7 @@ func (r *SQLiteTodoRepository) GetTodoByID(id int) (Todo, error) {
 	return todo, nil
 }
 
-func (r *SQLiteTodoRepository) CreateTodo(todo TodoCreate) (int, error) {
+func (r *SQLiteTodoRepository) CreateTodo(todo TodoCreate) (Todo, error) {
 	const initialStatus = 0
 
 	result, err := r.db.Exec(
@@ -63,24 +63,32 @@ func (r *SQLiteTodoRepository) CreateTodo(todo TodoCreate) (int, error) {
 		todo.Description, initialStatus, todo.DueDate,
 	)
 	if err != nil {
-		return 0, err
+		return Todo{}, err
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return 0, err
+		return Todo{}, err
 	}
 
-	return int(id), nil
+	status, _ := IntToStatus(initialStatus)
+	newTodo := Todo{
+		ID:          int(id),
+		Description: todo.Description,
+		Status:      status,
+		DueDate:     todo.DueDate,
+	}
+
+	return newTodo, nil
 }
 
-func (r *SQLiteTodoRepository) UpdateTodo(todo Todo) error {
+func (r *SQLiteTodoRepository) UpdateTodo(todo TodoUpdate) (Todo, error) {
 	_, err := r.db.Exec("UPDATE todos SET description = ?, status = ?, due_date = ? WHERE id = ?", todo.Description, todo.Status, todo.DueDate, todo.ID)
 	if err != nil {
-		return err
+		return Todo{}, err
 	}
 
-	return nil
+	return r.GetTodoByID(todo.ID)
 }
 
 func (r *SQLiteTodoRepository) DeleteTodo(id int) error {

@@ -10,7 +10,7 @@ import (
 type Todo struct {
 	ID          int
 	Description string
-	Status      int
+	Status      TodoStatus
 	DueDate     time.Time
 }
 
@@ -54,4 +54,23 @@ func (t TodoCreate) String() string {
 		t.Description,
 		t.DueDate.Format(common.TIME_FORMAT),
 	)
+}
+
+type TodoUpdate struct {
+	ID          int
+	Description string
+	Status      TodoStatus
+	DueDate     time.Time
+}
+
+func NewTodoUpdate(id int, description string, status TodoStatus, dueDate time.Time) (TodoUpdate, error) {
+	if description == "" {
+		return TodoUpdate{}, fmt.Errorf("description cannot be empty")
+	}
+	return TodoUpdate{
+		ID:          id,
+		Description: description,
+		Status:      status,
+		DueDate:     dueDate,
+	}, nil
 }
