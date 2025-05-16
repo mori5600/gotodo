@@ -9,6 +9,15 @@ type TodoDTO struct {
 	DueDate     string `json:"due_date"`
 }
 
+func NewTodoDTO(id int, description, status, dueDate string) TodoDTO {
+	return TodoDTO{
+		ID:          id,
+		Description: description,
+		Status:      status,
+		DueDate:     dueDate,
+	}
+}
+
 func (t TodoDTO) String() string {
 	return fmt.Sprintf(
 		"TodoDTO[ID=%d, Description=%s, Status=%s, DueDate=%s]",
