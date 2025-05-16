@@ -1,6 +1,10 @@
 package todo
 
-import "time"
+import (
+	"time"
+
+	"github.com/mori5600/gotodo/common"
+)
 
 type TodoApplicationService interface {
 	Create(description string, dueDate time.Time) (TodoDTO, error)
@@ -35,7 +39,7 @@ func (s *TodoApplicationServiceImpl) Create(description string, dueDate time.Tim
 		ID:          todo.ID,
 		Description: todo.Description,
 		Status:      StatusToString(todo.Status),
-		DueDate:     todo.DueDate.Format(time.RFC3339),
+		DueDate:     common.TimeToString(todo.DueDate),
 	}
 
 	return todoDTO, nil
@@ -53,7 +57,7 @@ func (s *TodoApplicationServiceImpl) List() ([]TodoDTO, error) {
 			ID:          todo.ID,
 			Description: todo.Description,
 			Status:      StatusToString(todo.Status),
-			DueDate:     todo.DueDate.Format(time.RFC3339),
+			DueDate:     common.TimeToString(todo.DueDate),
 		}
 		todoDTOs = append(todoDTOs, todoDTO)
 	}
@@ -75,6 +79,6 @@ func (s *TodoApplicationServiceImpl) Update(id int, description string, status T
 		ID:          updatedTodo.ID,
 		Description: updatedTodo.Description,
 		Status:      StatusToString(updatedTodo.Status),
-		DueDate:     updatedTodo.DueDate.Format(time.RFC3339),
+		DueDate:     common.TimeToString(updatedTodo.DueDate),
 	}, nil
 }
